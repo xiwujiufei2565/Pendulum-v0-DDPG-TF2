@@ -26,6 +26,13 @@ class ReplayBuffer(object):
         rewards = np.array(rewards).reshape(batch_size, -1)
         return states, actions, rewards, next_states, done
 
+    # 判断缓冲区是否满了
+    def is_full(self):
+        if self.buffer_size == self.num_experiences:
+            return True
+        else:
+            return False
+
     # 返回缓冲池的大小
     def getSize(self):
         return self.buffer_size

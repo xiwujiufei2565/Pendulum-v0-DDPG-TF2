@@ -37,7 +37,7 @@ def play(env):
     BUFFER_SIZE = 20000  # 缓冲池的大小
     BATCH_SIZE = 64  # batch_size的大小
     GAMMA = 0.99  # 折扣系数
-    TAU = 0.05  # target网络软更新的速度
+    TAU = 0.001  # target网络软更新的速度
     LR_A = 0.0005 # Actor网络的学习率
     LR_C = 0.001  # Critic网络的学习率
 
@@ -73,15 +73,15 @@ def play(env):
     critic_target.model.set_weights(critic_weight)
 
     # 加载训练数据
-    # print("Now we load the weight")
-    # try:
-    #     actor.model.load_weights("src/actormodel.h5")
-    #     critic.model.load_weights("src/criticmodel.h5")
-    #     actor_target.model.load_weights("src/actormodel.h5")
-    #     critic_target.model.load_weights("src/criticmodel.h5")
-    #     print("Weight load successfully")
-    # except:
-    #     print("Cannot find the weight")
+    print("Now we load the weight")
+    try:
+        actor.model.load_weights("src/actormodel.h5")
+        critic.model.load_weights("src/criticmodel.h5")
+        actor_target.model.load_weights("src/actormodel.h5")
+        critic_target.model.load_weights("src/criticmodel.h5")
+        print("Weight load successfully")
+    except:
+        print("Cannot find the weight")
 
     # 开始迭代
     print("Experiment Start.")
@@ -98,7 +98,19 @@ def play(env):
         done = False
         noise = np.zeros(action_dim)
         step = 0
-        while not done:
+
+        while buff.is_full() == False:
+            env.render()
+            state = state.T
+            action = actor.model.predict(state)
+            if ep <= explore:
+                noise = OU.function(noise, dim=action_dim)
+                action = np.clip(action + noise, -action_bound, action_bound)
+            next_state, reward, done, _ = env.step(action)
+            buff.add(state.squeeze(), action, reward, next_state, done)
+            state = next_state
+
+        for i in range(100):
             env.render()
             state = state.T
             action = actor.model.predict(state)
@@ -109,7 +121,6 @@ def play(env):
             buff.add(state.squeeze(), action, reward, next_state, done)
 
             # 取样进行更新
-
             states, actions, rewards, next_states, dones = buff.getBatch(BATCH_SIZE)
 
             target_q_values = critic_target.model.predict([next_states, actor_target.predict(next_states)])
@@ -122,7 +133,6 @@ def play(env):
             target_update(actor, actor_target, critic, critic_target, TAU)  # 网络更新
 
             print("Episode", ep, "Step", step, "Action", action, "Reward", reward, "Loss", np.array(loss))
-
             total_reward += reward
             total_loss += np.array(loss)
             step += 1
@@ -136,8 +146,8 @@ def play(env):
 
         # 保存参数模型
         print("Now we save model")
-        # actor.model.save("src/actormodel.h5", overwrite=True)
-        # critic.model.save("src/criticmodel.h5", overwrite=True)
+        actor.model.save("src/actormodel.h5", overwrite=True)
+        critic.model.save("src/criticmodel.h5", overwrite=True)
 
         # 打印相关信息
         print("")

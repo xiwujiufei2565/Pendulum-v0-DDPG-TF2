@@ -24,8 +24,7 @@ class Actor:
             Input((self.state_dim,)),
             Dense(HIDDEN1_UNITS, activation='relu'),
             Dense(HIDDEN2_UNITS, activation='relu'),
-            Dense(self.action_dim, activation='tanh'),
-            Lambda(lambda x: x * self.action_bound)
+            Dense(self.action_dim, activation='tanh')
         ])
         return model
 
